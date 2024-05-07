@@ -7,6 +7,7 @@
 
 using namespace gocoroutine;
 
+
 Task<int> simple_task2() {
 	DEBUGFMTLOG("task 2 start ...");
 	using namespace std::chrono_literals;

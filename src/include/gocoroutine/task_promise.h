@@ -1,3 +1,4 @@
+# if 0
 #ifndef GOCOROUTINE_TASK_PROMISE_H
 #define GOCOROUTINE_TASK_PROMISE_H
 
@@ -12,7 +13,7 @@
 
 GOCOROUTINE_NAMESPACE_BEGIN
 
-#if 0
+
 template <typename ResultType> class Task;
 template <> class Task<void>;
 
@@ -26,9 +27,9 @@ public:
 		return Task{std::coroutine_handle<TaskPromise>::from_promise(*this)};
 	}
 
-	template <typename _ResultType> /* NOLINT */
-	TaskAwaiter<_ResultType> await_transform(Task<_ResultType>&& task) {
-		return TaskAwaiter<_ResultType>{std::move(task)};
+	template <typename ResultType_> 
+	TaskAwaiter<ResultType_> await_transform(Task<ResultType_>&& task) {
+		return TaskAwaiter<ResultType_>{std::move(task)};
 	}
 
 	void return_value(ResultType value) {
@@ -95,9 +96,9 @@ public:
 		return Task{std::coroutine_handle<TaskPromise>::from_promise(*this)};
 	}
 
-	template <typename _ResultType> /* NOLINT */
-	TaskAwaiter<_ResultType> await_transform(Task<_ResultType>&& task) {
-		return TaskAwaiter<_ResultType>{std::move(task)};
+	template <typename ResultType_>
+	TaskAwaiter<ResultType_> await_transform(Task<ResultType_>&& task) {
+		return TaskAwaiter<ResultType_>{std::move(task)};
 	}
 
 	void return_void() {
@@ -154,8 +155,8 @@ private:
 	std::condition_variable m_completion;
 };
 
-#endif
-
 GOCOROUTINE_NAMESPACE_END
+
+#endif
 
 #endif

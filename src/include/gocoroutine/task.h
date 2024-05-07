@@ -3,6 +3,7 @@
 
 #include "gocoroutine/result.h"
 #include "gocoroutine/utils.h"
+#include "gocoroutine/task_awaiter.h"
 #include <condition_variable>
 #include <exception>
 #include <functional>
@@ -14,61 +15,45 @@
 
 GOCOROUTINE_NAMESPACE_BEGIN
 
+
+// 此处为通用协程任务定义
+// 在使用中使用 Task 包裹返回值，内部包含 co_return 即可
+// 此后即可在外部函数中对该协程进行切换等操作
+// 参考 https://zhuanlan.zhihu.com/p/615828280
+
 template <typename ResultType> class Task {
 
 public:
-	template <typename Result> class TaskAwaiter {
 
-	public:
-		explicit TaskAwaiter(Task<Result>&& task)
-		    : m_task(std::move(task)) {}
-		TaskAwaiter(TaskAwaiter&& completion) noexcept
-		    : m_task(std::exchange(completion.get_task(), {})) {}
-
-		TaskAwaiter(TaskAwaiter& value) = delete;
-		TaskAwaiter& operator=(TaskAwaiter&) = delete;
-
-	public:
-		Task<Result>& get_task() { return m_task; }
-
-		constexpr bool await_ready() const noexcept { /* NOLINT */
-			return false;
-		}
-
-		void await_suspend(std::coroutine_handle<> handle) noexcept {
-
-			m_task.finally([handle]() { handle.resume(); });
-		}
-
-		Result await_resume() noexcept { return m_task.get_result(); }
-
-	private:
-		Task<Result> m_task;
-	};
-
+	// promise 类型定义
 	class TaskPromise {
 	public:
-		std::suspend_never initial_suspend() noexcept { return {}; }
 
-		std::suspend_always final_suspend() noexcept { return {}; }
+		// 协程初始化及结束后操作内容
+		std::suspend_never initial_suspend() noexcept { return {}; }	 /* NOLINT */
+		std::suspend_always final_suspend() noexcept { return {}; } 	 /* NOLINT */
 
+		// 构造协程返回对象
 		Task<ResultType> get_return_object() {
 			return Task{
 			    std::coroutine_handle<TaskPromise>::from_promise(*this)};
 		}
 
-		template <typename _ResultType> /* NOLINT */
-		TaskAwaiter<_ResultType> await_transform(Task<_ResultType>&& task) {
-			return TaskAwaiter<_ResultType>{std::move(task)};
+		// await 转换函数，用于对 await 传入参数进行处理
+		template <typename ResultType_>
+		TaskAwaiter<ResultType_> await_transform(Task<ResultType_>&& task) {
+			return TaskAwaiter<ResultType_>{std::move(task)};
 		}
 
-		void return_value(ResultType value) {
+		// （co_return）调用返回值，此处对于 void 类型特例化为 return_void
+		void return_value(ResultType value){
 			std::unique_lock<std::mutex> lock(m_completion_mutex);
 			m_result = Result<ResultType>(std::move(value));
 			m_completion.notify_all();
 			notify_callbacks();
 		}
 
+		// 异常处理
 		void unhandled_exception() {
 			std::unique_lock<std::mutex> lock(m_completion_mutex);
 			m_result = Result<ResultType>(std::current_exception());
@@ -76,6 +61,7 @@ public:
 			notify_callbacks();
 		}
 
+		// 同步获取回调值
 		ResultType get_result() {
 			std::unique_lock<std::mutex> lock(m_completion_mutex);
 
@@ -85,6 +71,7 @@ public:
 			return m_result->get_or_throw();
 		}
 
+		// 异步获取回调值
 		void on_completed(std::function<void(Result<ResultType>)>&& func) {
 			std::unique_lock<std::mutex> lock(m_completion_mutex);
 
@@ -117,6 +104,8 @@ public:
 	};
 
 public:
+
+	// 满足 c++20 coroutines 协程中对 promise_type 类型定义的要求
 	using promise_type = Task<ResultType>::TaskPromise;
 
 public:
@@ -177,53 +166,22 @@ private:
 // void 特化版本
 template <> class Task<void> {
 public:
-	template <typename Result> class TaskAwaiter {
 
-	public:
-		explicit TaskAwaiter(Task<Result>&& task)
-		    : m_task(std::move(task)) {}
-		TaskAwaiter(TaskAwaiter&& completion) noexcept
-		    : m_task(std::exchange(completion.get_task(), {})) {}
-
-		TaskAwaiter(TaskAwaiter& value) = delete;
-		TaskAwaiter& operator=(TaskAwaiter&) = delete;
-
-	public:
-		Task<Result>& get_task() { return m_task; }
-
-		constexpr bool await_ready() const noexcept { /* NOLINT */
-			return false;
-		}
-
-		void await_suspend(std::coroutine_handle<> handle) noexcept {
-
-			m_task.finally([handle]() { handle.resume(); });
-		}
-
-		void await_resume() noexcept {
-			m_task.get_result();
-			DEBUGFMTLOG("VOID RESUME");
-		}
-
-	private:
-		Task<Result> m_task;
-	};
-
+	// promise 类型定义
 	class TaskPromise {
 	public:
 	public:
-		std::suspend_never initial_suspend() noexcept { return {}; }
-
-		std::suspend_always final_suspend() noexcept { return {}; }
+		std::suspend_never initial_suspend() noexcept { return {}; } 	/* NOLINT */
+		std::suspend_always final_suspend() noexcept { return {}; } 	/* NOLINT */
 
 		Task<void> get_return_object() {
 			return Task{
 			    std::coroutine_handle<TaskPromise>::from_promise(*this)};
 		}
 
-		template <typename _ResultType> /* NOLINT */
-		TaskAwaiter<_ResultType> await_transform(Task<_ResultType>&& task) {
-			return TaskAwaiter<_ResultType>{std::move(task)};
+		template <typename ResultType_> 
+		TaskAwaiter<ResultType_> await_transform(Task<ResultType_>&& task) {
+			return TaskAwaiter<ResultType_>{std::move(task)};
 		}
 
 		void return_void() {
@@ -290,6 +248,7 @@ public:
 	Task(Task&& task) noexcept
 	    : m_handle(std::exchange(task.m_handle, {})) {}
 
+	
 	Task(Task& value) = delete;
 	Task& operator=(Task& value) = delete;
 

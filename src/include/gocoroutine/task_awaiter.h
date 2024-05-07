@@ -5,11 +5,9 @@
 #include <utility>
 
 GOCOROUTINE_NAMESPACE_BEGIN
-#if 0
+
 template <typename ResultType>
 class Task;
-
-class Task<void>;
 
 template<typename Result> 
 class TaskAwaiter {
@@ -42,50 +40,10 @@ public:
         return m_task.get_result();
     }
 
-
 private:
     Task<Result> m_task;
     
 };
-
-template<> 
-class TaskAwaiter<void> {
-
-public:
-
-    explicit TaskAwaiter(Task<void>&& task) : m_task(std::move(task)) {}
-    TaskAwaiter(TaskAwaiter&& completion) noexcept : m_task(std::exchange(completion.get_task(), {})) { }
-
-    TaskAwaiter(TaskAwaiter& value) = delete;
-    TaskAwaiter& operator=(TaskAwaiter& ) = delete;
-
-public:
-    Task<void>& get_task() {
-        return m_task;
-    }
-
-    constexpr bool await_ready() const noexcept {       /* NOLINT */
-        return false;
-    }
-    
-    void await_suspend(std::coroutine_handle<> handle) noexcept {
-
-        m_task.finally([handle]() {
-            handle.resume();
-        });
-    }
-
-    void await_resume() noexcept {
-        m_task.get_result();
-    }
-
-
-private:
-    Task<void> m_task;
-    
-};
-
-#endif
 
 GOCOROUTINE_NAMESPACE_END
 
