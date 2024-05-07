@@ -23,13 +23,34 @@ Task<int> simple_task3() {
 	co_return 3;
 }
 
+
+Task<void> simple_task4() {
+	DEBUGFMTLOG("**** task4 start ... ****");
+	DEBUGFMTLOG("**** task4 end! ****");
+	co_return ;
+}
+
 Task<int> simple_task() {
 	DEBUGFMTLOG("task start ...");
+
+	co_await simple_task4();
+
 	auto result2 = co_await simple_task2();
 	DEBUGFMTLOG("returns from task2: ", result2);
 	auto result3 = co_await simple_task3();
 	DEBUGFMTLOG("returns from task3: ", result3);
+
 	co_return 1 + result2 + result3;
+}
+
+TEST_CASE("fmtlog") {
+
+	SETLOGLEVEL(fmtlog::LogLevel::DBG);
+	// fmtlog::setLogLevel(fmtlog::LogLevel::OFF);
+	SETLOGHEADER("[{l}] [{YmdHMSe}] [{t}] [{g}] ");
+
+	DEBUGFMTLOG("test of the task begin!");
+
 }
 
 TEST_CASE("Task") {
@@ -38,7 +59,7 @@ TEST_CASE("Task") {
 	    .catching([](std::exception& e) { DEBUGFMTLOG("error occurred", e.what()); });
 	try {
 		auto i = simpleTask.get_result();
-		debug("simple task end from get: ", i);
+		DEBUGFMTLOG("simple task end from get: ", i);
 	} catch (std::exception& e) {
 		DEBUGFMTLOG("error: ", e.what());
 	}

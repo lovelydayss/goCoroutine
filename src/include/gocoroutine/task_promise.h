@@ -2,9 +2,9 @@
 #define GOCOROUTINE_TASK_PROMISE_H
 
 #include "gocoroutine/result.h"
-#include "gocoroutine/task_awaiter.h"
 #include "gocoroutine/utils.h"
 #include <condition_variable>
+#include <exception>
 #include <functional>
 #include <list>
 #include <mutex>
@@ -12,19 +12,21 @@
 
 GOCOROUTINE_NAMESPACE_BEGIN
 
+#if 0
 template <typename ResultType> class Task;
+template <> class Task<void>;
 
 template <typename ResultType> class TaskPromise {
 public:
-	std::suspend_never initial_suspend() { return {}; }
+	std::suspend_never initial_suspend() noexcept { return {}; }
 
-	std::suspend_always final_suspend() { return {}; }
+	std::suspend_always final_suspend() noexcept { return {}; }
 
 	Task<ResultType> get_return_object() {
 		return Task{std::coroutine_handle<TaskPromise>::from_promise(*this)};
 	}
 
-	template <typename _ResultType>     /* NOLINT */
+	template <typename _ResultType> /* NOLINT */
 	TaskAwaiter<_ResultType> await_transform(Task<_ResultType>&& task) {
 		return TaskAwaiter<_ResultType>{std::move(task)};
 	}
@@ -77,12 +79,82 @@ private:
 
 private:
 	std::optional<Result<ResultType>> m_result;
+	std::list<std::function<void(Result<ResultType>)>> m_callbacks;
 
 	std::mutex m_completion_mutex;
 	std::condition_variable m_completion;
-
-	std::list<std::function<void(Result<ResultType>)>> m_callbacks;
 };
+
+template <> class TaskPromise<void> {
+public:
+	std::suspend_never initial_suspend() noexcept { return {}; }
+
+	std::suspend_always final_suspend() noexcept { return {}; }
+
+	Task<void> get_return_object() {
+		return Task{std::coroutine_handle<TaskPromise>::from_promise(*this)};
+	}
+
+	template <typename _ResultType> /* NOLINT */
+	TaskAwaiter<_ResultType> await_transform(Task<_ResultType>&& task) {
+		return TaskAwaiter<_ResultType>{std::move(task)};
+	}
+
+	void return_void() {
+		std::unique_lock<std::mutex> lock(m_completion_mutex);
+		m_result = Result<void>(std::current_exception());
+		m_completion.notify_all();
+		notify_callbacks();
+	}
+
+	void unhandled_exception() {
+		std::unique_lock<std::mutex> lock(m_completion_mutex);
+		m_result = Result<void>(std::current_exception());
+		m_completion.notify_all();
+		notify_callbacks();
+	}
+
+	void get_result() {
+		std::unique_lock<std::mutex> lock(m_completion_mutex);
+
+		if (!m_result.has_value())
+			m_completion.wait(lock);
+
+		m_result->get_or_throw();
+	}
+
+	void on_completed(std::function<void(Result<void>)>&& func) {
+		std::unique_lock<std::mutex> lock(m_completion_mutex);
+
+		if (m_result.has_value()) {
+			auto value = m_result.value();
+			lock.unlock();
+			func(value);
+			return;
+		} else {
+			m_callbacks.push_back(std::move(func));
+		}
+	}
+
+private:
+	void notify_callbacks() {
+		auto value = m_result.value();
+		for (auto& callback : m_callbacks) {
+			callback(value);
+		}
+
+		m_callbacks.clear();
+	}
+
+private:
+	std::optional<Result<void>> m_result;
+	std::list<std::function<void(Result<void>)>> m_callbacks;
+
+	std::mutex m_completion_mutex;
+	std::condition_variable m_completion;
+};
+
+#endif
 
 GOCOROUTINE_NAMESPACE_END
 

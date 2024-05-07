@@ -28,6 +28,25 @@ class Result {
 };
 
 
+// 结果类型的 void 类型特化
+// 不再需要保存返回结果值，只需进行异常处理即可
+template <>
+class Result<void> {
+    public:
+        explicit Result() = default;
+        explicit Result(std::exception_ptr&& exceptin_ptr) : m_exceptin_ptr(exceptin_ptr) {}
+
+        void get_or_throw() {                      // 实现成功则返回，否则抛出异常
+            if (m_exceptin_ptr) {
+                std::rethrow_exception(m_exceptin_ptr);
+            }
+        }
+
+    private:
+        std::exception_ptr m_exceptin_ptr;       // 异常指针
+
+};
+
 GOCOROUTINE_NAMESPACE_END
 
 

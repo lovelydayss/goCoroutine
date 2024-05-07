@@ -7,7 +7,7 @@ add_cxxflags("-g", "-O0", "-fcoroutines")
 --global define end
 
 -- coroutine test begin
-target("test_memory_pool")
+target("test_task")
     set_kind("binary")
     
     add_includedirs("include")
