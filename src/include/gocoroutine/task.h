@@ -4,6 +4,7 @@
 #include "gocoroutine/result.h"
 #include "gocoroutine/utils.h"
 #include "gocoroutine/task_awaiter.h"
+#include "gocoroutine/executor.h"
 #include <condition_variable>
 #include <exception>
 #include <functional>
@@ -21,7 +22,8 @@ GOCOROUTINE_NAMESPACE_BEGIN
 // 此后即可在外部函数中对该协程进行切换等操作
 // 参考 https://zhuanlan.zhihu.com/p/615828280
 
-template <typename ResultType> class Task {
+template <typename ResultType, typename Executor = NewThreadExecutor> 
+class Task {
 
 public:
 
@@ -106,7 +108,7 @@ public:
 public:
 
 	// 满足 c++20 coroutines 协程中对 promise_type 类型定义的要求
-	using promise_type = Task<ResultType>::TaskPromise;
+	using promise_type = Task<ResultType, Executor>::TaskPromise;
 
 public:
 	explicit Task(std::coroutine_handle<promise_type> handle)
@@ -164,7 +166,7 @@ private:
 };
 
 // void 特化版本
-template <> class Task<void> {
+template <typename Executor> class Task<void, Executor> {
 public:
 
 	// promise 类型定义
@@ -239,7 +241,7 @@ public:
 	};
 
 public:
-	using promise_type = Task<void>::TaskPromise;
+	using promise_type = Task<void, Executor>::TaskPromise;
 
 public:
 	explicit Task(std::coroutine_handle<promise_type> handle)

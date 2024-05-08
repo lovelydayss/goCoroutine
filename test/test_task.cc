@@ -24,7 +24,6 @@ Task<int> simple_task3() {
 	co_return 3;
 }
 
-
 Task<void> simple_task4() {
 	DEBUGFMTLOG("**** task4 start ... ****");
 	DEBUGFMTLOG("**** task4 end! ****");

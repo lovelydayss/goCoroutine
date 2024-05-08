@@ -6,22 +6,22 @@
 
 GOCOROUTINE_NAMESPACE_BEGIN
 
-template <typename ResultType>
+template <typename ResultType, typename Executor> 
 class Task;
 
-template<typename Result> 
+template<typename Result, typename Executor> 
 class TaskAwaiter {
 
 public:
 
-    explicit TaskAwaiter(Task<Result>&& task) : m_task(std::move(task)) {}
+    explicit TaskAwaiter(Task<Result, Executor>&& task) : m_task(std::move(task)) {}
     TaskAwaiter(TaskAwaiter&& completion) noexcept : m_task(std::exchange(completion.get_task(), {})) { }
 
     TaskAwaiter(TaskAwaiter& value) = delete;
     TaskAwaiter& operator=(TaskAwaiter& ) = delete;
 
 public:
-    Task<Result>& get_task() {
+    Task<Result, Executor>& get_task() {
         return m_task;
     }
 
@@ -41,7 +41,7 @@ public:
     }
 
 private:
-    Task<Result> m_task;
+    Task<Result, Executor> m_task;
     
 };
 
