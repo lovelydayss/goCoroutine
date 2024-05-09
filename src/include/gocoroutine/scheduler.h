@@ -1,0 +1,22 @@
+#ifndef GOCOROUTINE_SCHEDULER_H
+#define GOCOROUTINE_SCHEDULER_H
+
+#include "gocoroutine/utils.h"
+
+
+GOCOROUTINE_NAMESPACE_BEGIN
+
+
+
+
+
+
+
+
+
+
+
+GOCOROUTINE_NAMESPACE_END
+
+
+#endif

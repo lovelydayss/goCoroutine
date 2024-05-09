@@ -1,5 +1,5 @@
-#ifndef GOCOROUTINE_EXECUTOR_H_
-#define GOCOROUTINE_EXECUTOR_H_
+#ifndef GOCOROUTINE_EXECUTOR_H
+#define GOCOROUTINE_EXECUTOR_H
 
 #include "gocoroutine/utils.h"
 #include <algorithm>

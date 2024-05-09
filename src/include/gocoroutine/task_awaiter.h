@@ -1,5 +1,5 @@
-#ifndef GOCOROUTINE_TASK_AWAITER_H_
-#define GOCOROUTINE_TASK_AWAITER_H_
+#ifndef GOCOROUTINE_TASK_AWAITER_H
+#define GOCOROUTINE_TASK_AWAITER_H
 
 #include "gocoroutine/utils.h"
 #include <utility>

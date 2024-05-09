@@ -16,6 +16,16 @@ target("test_task")
     -- add_files("src/*.cc")
     add_files("test/test_task.cc")
 
+
+target("test_executor")
+    set_kind("binary")
+    
+    add_includedirs("include")
+    add_includedirs("src/include")
+
+    -- add_files("src/*.cc")
+    add_files("test/test_executor.cc")
+
 -- coroutine test end
 
 

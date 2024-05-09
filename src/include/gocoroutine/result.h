@@ -1,5 +1,5 @@
-#ifndef GOCOROUTINE_RESULT_H_
-#define GOCOROUTINE_RESULT_H_
+#ifndef GOCOROUTINE_RESULT_H
+#define GOCOROUTINE_RESULT_H
 
 #include "gocoroutine/utils.h"
 #include <exception>

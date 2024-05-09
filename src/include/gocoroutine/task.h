@@ -5,6 +5,7 @@
 #include "gocoroutine/utils.h"
 #include "gocoroutine/task_awaiter.h"
 #include "gocoroutine/executor.h"
+#include "gocoroutine/scheduler.h"
 #include <condition_variable>
 #include <exception>
 #include <functional>
@@ -36,15 +37,15 @@ public:
 		std::suspend_always final_suspend() noexcept { return {}; } 	 /* NOLINT */
 
 		// 构造协程返回对象
-		Task<ResultType> get_return_object() {
+		Task<ResultType, Executor> get_return_object() {
 			return Task{
 			    std::coroutine_handle<TaskPromise>::from_promise(*this)};
 		}
 
 		// await 转换函数，用于对 await 传入参数进行处理
-		template <typename ResultType_>
-		TaskAwaiter<ResultType_> await_transform(Task<ResultType_>&& task) {
-			return TaskAwaiter<ResultType_>{std::move(task)};
+		template <typename ResultType_, typename Executor_>
+		TaskAwaiter<ResultType_, Executor_> await_transform(Task<ResultType_, Executor_>&& task) {
+			return TaskAwaiter<ResultType_, Executor_>{std::move(task)};
 		}
 
 		// （co_return）调用返回值，此处对于 void 类型特例化为 return_void
@@ -176,14 +177,14 @@ public:
 		std::suspend_never initial_suspend() noexcept { return {}; } 	/* NOLINT */
 		std::suspend_always final_suspend() noexcept { return {}; } 	/* NOLINT */
 
-		Task<void> get_return_object() {
+		Task<void, Executor> get_return_object() {
 			return Task{
 			    std::coroutine_handle<TaskPromise>::from_promise(*this)};
 		}
 
-		template <typename ResultType_> 
-		TaskAwaiter<ResultType_> await_transform(Task<ResultType_>&& task) {
-			return TaskAwaiter<ResultType_>{std::move(task)};
+		template <typename ResultType_, typename Executor_> 
+		TaskAwaiter<ResultType_, Executor_> await_transform(Task<ResultType_, Executor_>&& task) {
+			return TaskAwaiter<ResultType_, Executor_>{std::move(task)};
 		}
 
 		void return_void() {
