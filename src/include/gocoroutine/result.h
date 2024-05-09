@@ -11,19 +11,19 @@ template <typename T>
 class Result {
     public:
         explicit Result() = default;
-        explicit Result(T&& value) : m_value(value) {}
-        explicit Result(std::exception_ptr&& exceptin_ptr) : m_exceptin_ptr(exceptin_ptr) {}
+        explicit Result(T&& value) : value_(value) {}
+        explicit Result(std::exception_ptr&& exceptin_ptr) : exceptin_ptr_(exceptin_ptr) {}
 
         T get_or_throw() {                      // 实现成功则返回，否则抛出异常
-            if (m_exceptin_ptr) {
-                std::rethrow_exception(m_exceptin_ptr);
+            if (exceptin_ptr_) {
+                std::rethrow_exception(exceptin_ptr_);
             }
-            return m_value;
+            return value_;
         }
 
     private:
-        T m_value;                               // 结果值
-        std::exception_ptr m_exceptin_ptr;       // 异常指针
+        T value_;                               // 结果值
+        std::exception_ptr exceptin_ptr_;       // 异常指针
 
 };
 
@@ -34,16 +34,16 @@ template <>
 class Result<void> {
     public:
         explicit Result() = default;
-        explicit Result(std::exception_ptr&& exceptin_ptr) : m_exceptin_ptr(exceptin_ptr) {}
+        explicit Result(std::exception_ptr&& exceptin_ptr) : exceptin_ptr_(exceptin_ptr) {}
 
         void get_or_throw() {                      // 实现成功则返回，否则抛出异常
-            if (m_exceptin_ptr) {
-                std::rethrow_exception(m_exceptin_ptr);
+            if (exceptin_ptr_) {
+                std::rethrow_exception(exceptin_ptr_);
             }
         }
 
     private:
-        std::exception_ptr m_exceptin_ptr;       // 异常指针
+        std::exception_ptr exceptin_ptr_;       // 异常指针
 
 };
 

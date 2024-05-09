@@ -1,52 +1,45 @@
 #ifndef GOCOROUTINE_TASK_AWAITER_H
 #define GOCOROUTINE_TASK_AWAITER_H
 
+#include "gocoroutine/executor.h"
 #include "gocoroutine/utils.h"
 #include <utility>
 
 GOCOROUTINE_NAMESPACE_BEGIN
 
-template <typename ResultType, typename Executor> 
-class Task;
+template <typename ResultType, typename Executor> class Task;
 
-template<typename Result, typename Executor> 
-class TaskAwaiter {
+template <typename Result, typename Executor> class TaskAwaiter {
 
 public:
+	explicit TaskAwaiter(AbstractExecutor* executor,
+	                     Task<Result, Executor>&& task) noexcept
+	    : executor_(executor)
+	    , task_(std::move(task)) {}
+	TaskAwaiter(TaskAwaiter&& completion) noexcept
+	    : executor_(completion.executor_)
+	    , task_(std::exchange(completion.task_, {})) {}
 
-    explicit TaskAwaiter(Task<Result, Executor>&& task) : m_task(std::move(task)) {}
-    TaskAwaiter(TaskAwaiter&& completion) noexcept : m_task(std::exchange(completion.get_task(), {})) { }
-
-    TaskAwaiter(TaskAwaiter& value) = delete;
-    TaskAwaiter& operator=(TaskAwaiter& ) = delete;
+	TaskAwaiter(TaskAwaiter& value) = delete;
+	TaskAwaiter& operator=(TaskAwaiter&) = delete;
 
 public:
-    Task<Result, Executor>& get_task() {
-        return m_task;
-    }
+	constexpr bool await_ready() const noexcept { /* NOLINT */
+		return false;
+	}
 
-    constexpr bool await_ready() const noexcept {       /* NOLINT */
-        return false;
-    }
-    
-    void await_suspend(std::coroutine_handle<> handle) noexcept {
+	void await_suspend(std::coroutine_handle<> handle) noexcept {
 
-        m_task.finally([handle]() {
-            handle.resume();
-        });
-    }
+		task_.finally([handle]() { handle.resume(); });
+	}
 
-    Result await_resume() noexcept {
-        return m_task.get_result();
-    }
+	Result await_resume() noexcept { return task_.get_result(); }
 
 private:
-    Task<Result, Executor> m_task;
-    
+	Task<Result, Executor> task_;
+	AbstractExecutor* executor_;
 };
 
 GOCOROUTINE_NAMESPACE_END
-
-
 
 #endif

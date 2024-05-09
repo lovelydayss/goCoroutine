@@ -26,6 +26,17 @@ target("test_executor")
     -- add_files("src/*.cc")
     add_files("test/test_executor.cc")
 
+
+target("test_scheduler")
+    set_kind("binary")
+    
+    add_includedirs("include")
+    add_includedirs("src/include")
+
+    -- add_files("src/*.cc")
+    add_files("test/test_executor.cc")
+
+
 -- coroutine test end
 
 

@@ -59,15 +59,13 @@ public:
 	// 资源清理，最后分离线程直到其执行完毕
 	~LooperExecutor() {
 		shutdown(false);
-		if (work_thread_.joinable()) {
-			work_thread_.join();
-		}
+		join();
 	}
 
 public:
 	// 执行调度，即将任务函数 push 至循环队列中等待执行
 	void execute(std::function<void()>&& func) override {
-		std::unique_lock<std::mutex> lk(queue_lock_);
+		std::unique_lock<std::mutex> lk(queue_mutex_);
 
 		if (is_active_.load(std::memory_order_relaxed)) {
 			executable_queue_.push(func);
@@ -83,7 +81,7 @@ public:
 		if (!wait_for_complete) {
 
 			// 直接清空任务队列
-			std::unique_lock<std::mutex> lk(queue_lock_);
+			std::unique_lock<std::mutex> lk(queue_mutex_);
 			decltype(executable_queue_) empty_queue;
 			std::swap(executable_queue_, empty_queue);
 		}
@@ -95,6 +93,12 @@ public:
 		queue_condition_.notify_all();
 	}
 
+    void join() {
+        if(work_thread_.joinable()) {
+            work_thread_.join();
+        }
+    }
+
 private:
 	// 循环执行逻辑
 	void run_loop() {
@@ -103,7 +107,7 @@ private:
 		// 在调度位置设置了当循环未激活时无法再次添加任务
 		while (is_active_.load(std::memory_order_relaxed) ||
 		       !executable_queue_.empty()) {
-			std::unique_lock lk{queue_lock_};
+			std::unique_lock lk{queue_mutex_};
 
 			// 任务队列为空执行挂起，等待任务添加时唤醒
 			if (executable_queue_.empty()) {
@@ -128,7 +132,7 @@ private:
 
 private:
 	std::condition_variable queue_condition_;
-	std::mutex queue_lock_;
+	std::mutex queue_mutex_;
 	std::queue<std::function<void()>> executable_queue_;
 
 	std::atomic<bool> is_active_;
