@@ -50,6 +50,7 @@ TEST_CASE("fmtlog") {
 	SETLOGHEADER("[{l}] [{YmdHMSe}] [{t}] [{g}] ");
 
 	DEBUGFMTLOG("test of the task begin!");
+	CREATEPOLLTHREAD(100000);
 
 }
 

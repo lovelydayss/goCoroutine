@@ -34,7 +34,7 @@ target("test_scheduler")
     add_includedirs("src/include")
 
     -- add_files("src/*.cc")
-    add_files("test/test_executor.cc")
+    add_files("test/test_scheduler.cc")
 
 
 -- coroutine test end

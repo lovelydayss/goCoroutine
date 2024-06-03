@@ -1,4 +1,5 @@
 
+#include "gocoroutine/executor.h"
 #include "gocoroutine/task.h"
 #include "gocoroutine/utils.h"
 
@@ -23,7 +24,7 @@ Task<int, AsyncExecutor> simple_task2() {
 	co_return 2;
 }
 
-Task<int, NewThreadExecutor> simple_task3() {
+Task<int,  NewThreadExecutor> simple_task3() {
 	DEBUGFMTLOG("in task 3 start ...");
 	using namespace std::chrono_literals;
 	std::this_thread::sleep_for(3s);
@@ -61,6 +62,7 @@ TEST_CASE("fmtlog") {
 	SETLOGHEADER("[{l}] [{YmdHMSe}] [{t}] [{g}] ");
 
 	DEBUGFMTLOG("test of the task begin!");
+	CREATEPOLLTHREAD(100);
 }
 
 TEST_CASE("Task") {
@@ -70,6 +72,6 @@ TEST_CASE("Task") {
 
 	using namespace std::chrono_literals;
 	std::this_thread::sleep_for(1s);
-	looper.shutdown(false);
+	looper.shutdown(false);		// 析构函数中存在 shutdown 调用
 	std::this_thread::sleep_for(1s);
 }

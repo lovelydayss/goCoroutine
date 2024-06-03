@@ -4,12 +4,13 @@
 #include "gocoroutine/executor.h"
 #include "gocoroutine/scheduler.h"
 #include "gocoroutine/utils.h"
+#include <cstdint>
 
 GOCOROUTINE_NAMESPACE_BEGIN
 
 class SleepAwaiter {
 public:
-	SleepAwaiter(AbstractExecutor* executor, long long duration)
+	SleepAwaiter(AbstractExecutor* executor, int64_t duration)
 	    : executor_(executor)
 	    , duration_(duration) {}
 
@@ -22,7 +23,9 @@ public:
 
 		scheduler.execute(
 		    [this, handle]() {
-			    executor_->execute([handle]() { handle.resume(); });
+			    executor_->execute(
+					[handle]() { 
+						handle.resume(); });
 		    },
 		    duration_);
 	}
@@ -30,8 +33,8 @@ public:
 	void await_resume() {}
 
 private:
-	AbstractExecutor* executor_;
-	long long duration_;
+	AbstractExecutor* executor_{};
+	int64_t duration_{};
 };
 
 GOCOROUTINE_NAMESPACE_END

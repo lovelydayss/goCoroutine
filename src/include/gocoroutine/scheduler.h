@@ -30,7 +30,7 @@ public:
 
 public:
 	// 延时函数，计算剩余时间
-	long long delay() const { /* NOLINT */
+	int64_t delay() const { /* NOLINT */
 		auto now = std::chrono::system_clock::now();
 		auto current = std::chrono::duration_cast<std::chrono::milliseconds>(
 		                   now.time_since_epoch())
@@ -39,7 +39,7 @@ public:
 	}
 
 	// 返回执行时间戳
-	long long get_scheduled_time() const { /* NOLINT */
+	int64_t get_scheduled_time() const { /* NOLINT */
 		return scheduler_time_;
 	}
 
@@ -47,8 +47,8 @@ public:
 	void operator()() { func_(); }
 
 private:
-	long long scheduler_time_;   // 调度时间戳
-	std::function<void()> func_; // 延时执行函数
+	int64_t scheduler_time_{};   // 调度时间戳
+	std::function<void()> func_{}; // 延时执行函数
 };
 
 // DelayedExecutableCompare 类，用于实现 DelayedExecutable 类的比较
@@ -97,6 +97,10 @@ public:
 	}
 
 	void shutdown(bool wait_for_complete = true) {
+
+		if(!is_active_.load(std::memory_order_relaxed))
+			return;
+		
 		is_active_.store(false, std::memory_order_relaxed);
 
 		if (!wait_for_complete) {
@@ -154,19 +158,20 @@ private:
 			executable_queue_.pop();
 			lk.unlock();
 			executable();
-			DEBUGFMTLOG("run loop exit!");
 		}
+
+		DEBUGFMTLOG("timer run loop exit!");
 	}
 
 private:
-	std::condition_variable queue_condition_;
-	std::mutex queue_mutex_;
+	std::condition_variable queue_condition_{};
+	std::mutex queue_mutex_{};
 	std::priority_queue<DelayedExecutable, std::vector<DelayedExecutable>,
 	                    DelayedExecutableCompare>
-	    executable_queue_;
+	    executable_queue_{};
 
-	std::atomic<bool> is_active_;
-	std::thread work_thread_;
+	std::atomic<bool> is_active_{};
+	std::thread work_thread_{};
 };
 
 GOCOROUTINE_NAMESPACE_END

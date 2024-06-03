@@ -6,6 +6,7 @@
 
 GOCOROUTINE_NAMESPACE_BEGIN
 
+// 执行调度器的绑定
 class DispatchAwaiter {
 
 public:
@@ -15,13 +16,16 @@ public:
 	constexpr bool await_ready() const { return false; } /* NOLINT */
 
 	void await_suspend(std::coroutine_handle<> handle) const {
-		executor_->execute([handle]() { handle.resume(); });
+
+		// 协程调度到对应的调度器上
+		executor_->execute([handle]() { 
+			handle.resume(); });
 	}
 
 	void await_resume() {}
 
 private:
-	AbstractExecutor* executor_;
+	AbstractExecutor* executor_{};
     
 };
 

@@ -28,16 +28,17 @@ public:
 		return false;
 	}
 
+	// handle 表示当前协程
+	// 可以通过 handle.resume() 来唤醒当前协程，从而继续执行
 	void await_suspend(std::coroutine_handle<> handle) noexcept {
-
 		task_.finally([handle]() { handle.resume(); });
 	}
 
 	Result await_resume() noexcept { return task_.get_result(); }
 
 private:
-	Task<Result, Executor> task_;
-	AbstractExecutor* executor_;
+	Task<Result, Executor> task_{};
+	AbstractExecutor* executor_{};
 };
 
 GOCOROUTINE_NAMESPACE_END

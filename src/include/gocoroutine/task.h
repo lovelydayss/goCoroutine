@@ -3,7 +3,6 @@
 
 #include "gocoroutine/executor.h"
 #include "gocoroutine/result.h"
-#include "gocoroutine/scheduler.h"
 #include "gocoroutine/sleep_awaiter.h"
 #include "gocoroutine/dispatch_awaiter.h"
 #include "gocoroutine/task_awaiter.h"
@@ -66,7 +65,8 @@ public:
 		void return_value(ResultType value) {
 			std::unique_lock<std::mutex> lock(completion_mutex_);
 			result_ = Result<ResultType>(std::move(value));
-			completion_.notify_all();
+			lock.unlock();
+
 			notify_callbacks();
 		}
 
@@ -75,6 +75,8 @@ public:
 			std::unique_lock<std::mutex> lock(completion_mutex_);
 			result_ = Result<ResultType>(std::current_exception());
 			completion_.notify_all();
+			lock.unlock();
+
 			notify_callbacks();
 		}
 
@@ -104,22 +106,24 @@ public:
 
 	private:
 		void notify_callbacks() {
+			std::unique_lock<std::mutex> lock(completion_mutex_);
 			auto value = result_.value();
-			for (auto& callback : callbacks_) {
+			auto callbacks = std::exchange(callbacks_, {});
+			lock.unlock();
+
+			for (auto& callback : callbacks) {
 				callback(value);
 			}
-
-			callbacks_.clear();
 		}
 
 	private:
-		std::optional<Result<ResultType>> result_;
-		std::list<std::function<void(Result<ResultType>)>> callbacks_;
+		std::optional<Result<ResultType>> result_{};
+		std::list<std::function<void(Result<ResultType>)>> callbacks_{};
 
-		Executor executor_;
+		Executor executor_{};
 
-		std::mutex completion_mutex_;
-		std::condition_variable completion_;
+		std::mutex completion_mutex_{};
+		std::condition_variable completion_{};
 	};
 
 public:
@@ -178,7 +182,7 @@ public:
 	}
 
 private:
-	std::coroutine_handle<promise_type> handle_;
+	std::coroutine_handle<promise_type> handle_{};
 };
 
 // void 特化版本
@@ -186,7 +190,6 @@ template <typename Executor> class Task<void, Executor> {
 public:
 	// promise 类型定义
 	class TaskPromise {
-	public:
 	public:
 		DispatchAwaiter initial_suspend() noexcept {
 			return DispatchAwaiter{&executor_};
@@ -216,8 +219,10 @@ public:
 
 		void return_void() {
 			std::unique_lock<std::mutex> lock(completion_mutex_);
-			result_ = Result<void>(std::current_exception());
+			result_ = Result<void>();
 			completion_.notify_all();
+			lock.unlock();
+
 			notify_callbacks();
 		}
 
@@ -225,6 +230,8 @@ public:
 			std::unique_lock<std::mutex> lock(completion_mutex_);
 			result_ = Result<void>(std::current_exception());
 			completion_.notify_all();
+			lock.unlock();
+
 			notify_callbacks();
 		}
 
@@ -252,22 +259,24 @@ public:
 
 	private:
 		void notify_callbacks() {
+			std::unique_lock<std::mutex> lock(completion_mutex_);	
 			auto value = result_.value();
-			for (auto& callback : callbacks_) {
+			auto callbacks = std::exchange(callbacks_, {});
+			lock.unlock();
+
+			for (auto& callback : callbacks) {
 				callback(value);
 			}
-
-			callbacks_.clear();
 		}
 
 	private:
-		std::optional<Result<void>> result_;
-		std::list<std::function<void(Result<void>)>> callbacks_;
+		std::optional<Result<void>> result_{};
+		std::list<std::function<void(Result<void>)>> callbacks_{};
 
-		Executor executor_;
+		Executor executor_{};
 
-		std::mutex completion_mutex_;
-		std::condition_variable completion_;
+		std::mutex completion_mutex_{};
+		std::condition_variable completion_{};
 	};
 
 public:
@@ -324,7 +333,7 @@ public:
 	}
 
 private:
-	std::coroutine_handle<promise_type> handle_;
+	std::coroutine_handle<promise_type> handle_{};
 };
 
 GOCOROUTINE_NAMESPACE_END

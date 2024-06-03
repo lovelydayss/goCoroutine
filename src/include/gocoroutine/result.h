@@ -22,8 +22,8 @@ class Result {
         }
 
     private:
-        T value_;                               // 结果值
-        std::exception_ptr exceptin_ptr_;       // 异常指针
+        T value_{};                               // 结果值
+        std::exception_ptr exceptin_ptr_{};       // 异常指针
 
 };
 
@@ -43,7 +43,7 @@ class Result<void> {
         }
 
     private:
-        std::exception_ptr exceptin_ptr_;       // 异常指针
+        std::exception_ptr exceptin_ptr_{};       // 异常指针
 
 };
 

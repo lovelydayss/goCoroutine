@@ -31,7 +31,10 @@ public:
 class NewThreadExecutor : public AbstractExecutor {
 public:
 	void execute(std::function<void()>&& func) override {
-		std::thread(func).detach();
+		auto t = std::thread(func);
+
+		if(t.joinable())
+			t.join();
 	}
 };
 
@@ -76,6 +79,10 @@ public:
 
 	// 循环关闭及资源清理
 	void shutdown(bool wait_for_complete = true) {
+
+		// 判断调度器循环是否关闭
+		if(!is_active_.load(std::memory_order_relaxed))
+			return;
 
 		is_active_.store(false, std::memory_order_relaxed);
 		if (!wait_for_complete) {
@@ -128,15 +135,16 @@ private:
 		}
 
 		DEBUGFMTLOG("running loop exit!");
+		
 	}
 
 private:
-	std::condition_variable queue_condition_;
-	std::mutex queue_mutex_;
-	std::queue<std::function<void()>> executable_queue_;
+	std::condition_variable queue_condition_{};
+	std::mutex queue_mutex_{};
+	std::queue<std::function<void()>> executable_queue_{};
 
-	std::atomic<bool> is_active_;
-	std::thread work_thread_;
+	std::atomic<bool> is_active_{};
+	std::thread work_thread_{};
 };
 
 // 功能实现与 LooperExecutor 一致，但全局单例
