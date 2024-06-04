@@ -21,7 +21,6 @@ TEST_CASE("fmtlog") {
 	CREATEPOLLTHREAD(1000);
 }
 
-/*
 TEST_CASE("Scheduler") {
 
     DEBUGFMTLOG("start");
@@ -41,7 +40,6 @@ TEST_CASE("Scheduler") {
 
     DEBUGFMTLOG("end");
 }
-*/
 
 Task<void, NoopExecuter> simple_task1() {
 	DEBUGFMTLOG("in task 1 start ...");
@@ -68,9 +66,10 @@ Task<int, NoopExecuter> simple_task3() {
 }
 
 Task<int, NoopExecuter> simple_task() {
-	DEBUGFMTLOG("task start ...");
+	DEBUGFMTLOG("task1 start ...");
 	co_await simple_task1();
 	using namespace std::chrono_literals;
+	DEBUGFMTLOG("task1 end ...");
 	co_await 100ms;
 	DEBUGFMTLOG("after 100ms");
 
@@ -89,10 +88,12 @@ Task<int, NoopExecuter> simple_task() {
 TEST_CASE("tasks") {
 
 	auto simpleTask = simple_task();
+
 	simpleTask.then([](int i) { DEBUGFMTLOG("simple task end: {}", i); })
 	    .catching([](std::exception& e) {
 		    DEBUGFMTLOG("error occurred {}", e.what());
-	    });
+	    })
+	    .finally([]() { DEBUGFMTLOG("simple task finally"); });
 
 	try {
 		auto i = simpleTask.get_result();
@@ -100,5 +101,4 @@ TEST_CASE("tasks") {
 	} catch (std::exception& e) {
 		DEBUGFMTLOG("error: {}", e.what());
 	}
-	
 }

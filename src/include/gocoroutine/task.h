@@ -1,13 +1,12 @@
 #ifndef GOCOROUTINE_TASK_H
 #define GOCOROUTINE_TASK_H
 
+#include "gocoroutine/dispatch_awaiter.h"
 #include "gocoroutine/executor.h"
 #include "gocoroutine/result.h"
 #include "gocoroutine/sleep_awaiter.h"
-#include "gocoroutine/dispatch_awaiter.h"
 #include "gocoroutine/task_awaiter.h"
 #include "gocoroutine/utils.h"
-
 #include <condition_variable>
 #include <exception>
 #include <functional>
@@ -61,10 +60,11 @@ public:
 			        .count());
 		}
 
-		// （co_return）调用返回值，此处对于 void 类型特例化为 return_void
+		// co_return 调用返回值，对于 void 类型特例化为 return_void
 		void return_value(ResultType value) {
 			std::unique_lock<std::mutex> lock(completion_mutex_);
 			result_ = Result<ResultType>(std::move(value));
+			completion_.notify_all();		
 			lock.unlock();
 
 			notify_callbacks();
@@ -85,7 +85,7 @@ public:
 			std::unique_lock<std::mutex> lock(completion_mutex_);
 
 			if (!result_.has_value())
-				completion_.wait(lock);
+				completion_.wait(lock); // 当前线程阻塞同时释放锁
 
 			return result_->get_or_throw();
 		}
@@ -164,14 +164,14 @@ public:
 
 	Task& catching(std::function<void(std::exception&)>&& func) {
 
-		handle_.promise().on_completed([func](auto result) {
-			try {
-				result.get_or_throw();
-
-			} catch (std::exception& e) {
-				func(e);
-			}
-		});
+		handle_.promise().on_completed(
+		    [func](auto result) { // Result<ResultType>
+			    try {
+				    result.get_or_throw();
+			    } catch (std::exception& e) {
+				    func(e);
+			    }
+		    });
 
 		return *this;
 	}
@@ -259,7 +259,7 @@ public:
 
 	private:
 		void notify_callbacks() {
-			std::unique_lock<std::mutex> lock(completion_mutex_);	
+			std::unique_lock<std::mutex> lock(completion_mutex_);
 			auto value = result_.value();
 			auto callbacks = std::exchange(callbacks_, {});
 			lock.unlock();
