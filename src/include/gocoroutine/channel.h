@@ -1,0 +1,19 @@
+#ifndef GOCOROUTINE_CHANNEL_H
+#define GOCOROUTINE_CHANNEL_H
+
+#include "gocoroutine/utils.h"
+
+GOCOROUTINE_NAMESPACE_BEGIN
+
+
+
+
+
+
+
+
+
+GOCOROUTINE_NAMESPACE_END
+
+
+#endif

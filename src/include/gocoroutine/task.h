@@ -6,6 +6,7 @@
 #include "gocoroutine/result.h"
 #include "gocoroutine/sleep_awaiter.h"
 #include "gocoroutine/task_awaiter.h"
+#include "gocoroutine/channel_awaiter.h"
 #include "gocoroutine/utils.h"
 #include <condition_variable>
 #include <exception>
@@ -60,11 +61,25 @@ public:
 			        .count());
 		}
 
+		// await 转换函数，用于处理读 channel
+		template <typename ValueType_>
+		auto await_transform(ReaderAwaiter<ValueType_> reader_awaiter) {
+			reader_awaiter.executor_ = &executor_;
+			return reader_awaiter;
+		}
+
+		// await 转换函数，用于处理写 channel
+		template <typename ValueType_>
+		auto await_transform(WriterAwaiter<ValueType_> writer_awaiter) {
+			writer_awaiter.executor_ = &executor_;
+			return writer_awaiter;
+		}
+
 		// co_return 调用返回值，对于 void 类型特例化为 return_void
 		void return_value(ResultType value) {
 			std::unique_lock<std::mutex> lock(completion_mutex_);
 			result_ = Result<ResultType>(std::move(value));
-			completion_.notify_all();		
+			completion_.notify_all();
 			lock.unlock();
 
 			notify_callbacks();
@@ -215,6 +230,20 @@ public:
 			    &executor_,
 			    std::chrono::duration_cast<std::chrono::milliseconds>(duration)
 			        .count());
+		}
+
+		// await 转换函数，用于处理读 channel
+		template <typename ValueType_>
+		auto await_transform(ReaderAwaiter<ValueType_> reader_awaiter) {
+			reader_awaiter.executor_ = &executor_;
+			return reader_awaiter;
+		}
+
+		// await 转换函数，用于处理写 channel
+		template <typename ValueType_>
+		auto await_transform(WriterAwaiter<ValueType_> writer_awaiter) {
+			writer_awaiter.executor_ = &executor_;
+			return writer_awaiter;
 		}
 
 		void return_void() {
