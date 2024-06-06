@@ -15,3 +15,6 @@ add_executable("test_task" "test/test_task.cc")
 add_executable("test_executor" "test/test_executor.cc")
 
 add_executable("test_scheduler" "test/test_scheduler.cc")
+
+add_executable("test_channel" "test/test_channel.cc")
+

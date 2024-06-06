@@ -34,7 +34,12 @@ public:
 		// 协程初始化及结束后操作内容
 		DispatchAwaiter initial_suspend() noexcept {
 			return DispatchAwaiter{&executor_};
-		}                                                           /* NOLINT */
+		}
+		
+		// 系统默认实现了 suspend_always 和 suspend_never 两个 awaiter
+		// 仅区别在 await_ready() 函数的返回值
+		// 这里 suspend_always 标识返回 false 情况，表示持续中断
+		// 可以使用 suspend_never 标识返回 true 情况，表示跳过中断                                                          
 		std::suspend_always final_suspend() noexcept { return {}; } /* NOLINT */
 
 		// 构造协程返回对象
@@ -161,6 +166,8 @@ public:
 	}
 
 public:
+	
+	// 在这里均是通过 promise_type 类型来将协程操作转换为对应 promise_type 内部操作
 	ResultType get_result() { return handle_.promise().get_result(); }
 
 	Task& then(std::function<void(ResultType)>&& func) {
@@ -191,12 +198,16 @@ public:
 		return *this;
 	}
 
+	// 这里似乎没有对 finally 和 then 做显式区分
 	Task& finally(std::function<void()>&& func) {
 		handle_.promise().on_completed([func](auto result) { func(); });
 		return *this;
 	}
 
 private:
+
+	// 协程句柄
+	// 可实现数据中转的功能，promise() 函数即可调用内部 prosie_type 对象
 	std::coroutine_handle<promise_type> handle_{};
 };
 
